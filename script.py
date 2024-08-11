@@ -39,12 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyStatus = document.getElementById('copyStatus');
     const telegramChannelBtn = document.getElementById('telegramChannelBtn');
 
-    // Error handling for missing elements
-    if (!startBtn || !keyCountSelect || !gameSelect || !progressContainer || !progressBar || !progressText || !progressLog || !keyContainer || !keysList || !copyAllBtn || !generatedKeysTitle || !copyStatus) {
-        console.error('Missing HTML elements. Ensure all required elements are present.');
-        return;
-    }
-
     startBtn.addEventListener('click', async () => {
         const gameChoice = parseInt(gameSelect.value);
         const keyCount = parseInt(keyCountSelect.value);
@@ -150,4 +144,103 @@ document.addEventListener('DOMContentLoaded', () => {
         startBtn.disabled = false;
     });
 
-    document.getElementById('generate    };
+    document.getElementById('generateMoreBtn').addEventListener('click', () => {
+        progressContainer.classList.add('hidden');
+        keyContainer.classList.add('hidden');
+        startBtn.classList.remove('hidden');
+        keyCountSelect.classList.remove('hidden');
+        gameSelect.classList.remove('hidden');
+        generatedKeysTitle.classList.add('hidden');
+        copyAllBtn.classList.add('hidden');
+        keysList.innerHTML = '';
+        keyCountLabel.innerText = 'Number of keys:';
+    });
+
+    document.getElementById('creatorChannelBtn').addEventListener('click', () => {
+        window.open('https://telegram.me/Sam_Dm_bot', '_blank');
+    });
+
+    telegramChannelBtn.addEventListener('click', () => {
+        window.open('https://telegram.me/Insta_Buy_Follower', '_blank');
+    });
+
+    const generateClientId = () => {
+        const timestamp = Date.now();
+        const randomNumbers = Array.from({ length: 19 }, () => Math.floor(Math.random() * 10)).join('');
+        return `${timestamp}-${randomNumbers}`;
+    };
+
+    const login = async (clientId, appToken) => {
+        const response = await fetch('https://api.gamepromo.io/promo/login-client', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appToken,
+                clientId,
+                clientOrigin: 'deviceid'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to login');
+        }
+
+        const data = await response.json();
+        return data.clientToken;
+    };
+
+    const emulateProgress = async (clientToken, promoId) => {
+        const response = await fetch('https://api.gamepromo.io/promo/register-event', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${clientToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                promoId,
+                eventId: generateUUID(),
+                eventOrigin: 'undefined'
+            })
+        });
+
+        if (!response.ok) {
+            return false;
+        }
+
+        const data = await response.json();
+        return data.hasCode;
+    };
+
+    const generateKey = async (clientToken, promoId) => {
+        const response = await fetch('https://api.gamepromo.io/promo/create-code', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${clientToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                promoId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to generate key');
+        }
+
+        const data = await response.json();
+        return data.promoCode;
+    };
+
+    const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    const delayRandom = () => Math.random() / 3 + 1;
+});

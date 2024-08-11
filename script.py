@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     const EVENTS_DELAY = 20000;
-    const BATCH_SIZE = 100; // Process keys in batches
 
     const games = {
         1: {
@@ -40,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyStatus = document.getElementById('copyStatus');
     const telegramChannelBtn = document.getElementById('telegramChannelBtn');
 
+    // Error handling for missing elements
+    if (!startBtn || !keyCountSelect || !gameSelect || !progressContainer || !progressBar || !progressText || !progressLog || !keyContainer || !keysList || !copyAllBtn || !generatedKeysTitle || !copyStatus) {
+        console.error('Missing HTML elements. Ensure all required elements are present.');
+        return;
+    }
+
     startBtn.addEventListener('click', async () => {
         const gameChoice = parseInt(gameSelect.value);
         const keyCount = parseInt(keyCountSelect.value);
@@ -64,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateProgress = (increment, message) => {
             progress += increment;
             progressBar.style.width = `${progress}%`;
-            progressText.innerText = `${progress.toFixed(2)}%`;
+            progressText.innerText = `${progress}%`;
             progressLog.innerText = message;
         };
 
@@ -98,24 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Generate keys in batches
-        let allKeys = [];
-        for (let i = 0; i < keyCount; i += BATCH_SIZE) {
-            const currentBatchSize = Math.min(BATCH_SIZE, keyCount - i);
-            const keys = await Promise.all(Array.from({ length: currentBatchSize }, generateKeyProcess));
-            allKeys.push(...keys);
-            updateProgress((currentBatchSize / keyCount) * 100, `Batch ${i / BATCH_SIZE + 1} complete.`);
-            await sleep(1000); // Small delay between batches
-        }
+        const keys = await Promise.all(Array.from({ length: keyCount }, generateKeyProcess));
 
-        if (allKeys.length > 0) {
-            keysList.innerHTML = allKeys.filter(key => key).map(key =>
+        if (keys.length > 1) {
+            keysList.innerHTML = keys.filter(key => key).map(key =>
                 `<div class="key-item">
                     <input type="text" value="${key}" readonly>
                     <button class="copyKeyBtn" data-key="${key}">Copy Key</button>
                 </div>`
             ).join('');
             copyAllBtn.classList.remove('hidden');
+        } else if (keys.length === 1) {
+            keysList.innerHTML =
+                `<div class="key-item">
+                    <input type="text" value="${keys[0]}" readonly>
+                    <button class="copyKeyBtn" data-key="${keys[0]}">Copy Key</button>
+                </div>`;
         }
 
         keyContainer.classList.remove('hidden');
@@ -129,9 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
-
         copyAllBtn.addEventListener('click', () => {
-            const keysText = allKeys.filter(key => key).join('\n');
+            const keysText = keys.filter(key => key).join('\n');
             navigator.clipboard.writeText(keysText).then(() => {
                 copyStatus.classList.remove('hidden');
                 setTimeout(() => copyStatus.classList.add('hidden'), 2000);
@@ -148,71 +150,4 @@ document.addEventListener('DOMContentLoaded', () => {
         startBtn.disabled = false;
     });
 
-    document.getElementById('generateMoreBtn').addEventListener('click', () => {
-        progressContainer.classList.add('hidden');
-        keyContainer.classList.add('hidden');
-        startBtn.classList.remove('hidden');
-        keyCountSelect.classList.remove('hidden');
-        gameSelect.classList.remove('hidden');
-        generatedKeysTitle.classList.add('hidden');
-        copyAllBtn.classList.add('hidden');
-        keysList.innerHTML = '';
-        keyCountLabel.innerText = 'Number of keys:';
-    });
-
-    document.getElementById('creatorChannelBtn').addEventListener('click', () => {
-        window.open('https://telegram.me/Sam_Dm_bot', '_blank');
-    });
-
-    telegramChannelBtn.addEventListener('click', () => {
-        window.open('https://telegram.me/Insta_Buy_Follower', '_blank');
-    });
-
-    const generateClientId = () => {
-        const timestamp = Date.now();
-        const randomNumbers = Array.from({ length: 19 }, () => Math.floor(Math.random() * 10)).join('');
-        return `${timestamp}-${randomNumbers}`;
-    };
-
-    const login = async (clientId, appToken) => {
-        const response = await fetch('https://api.gamepromo.io/promo/login-client', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                appToken,
-                clientId,
-                clientOrigin: 'deviceid'
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to login');
-        }
-
-        const data = await response.json();
-        return data.clientToken;
-    };
-
-    const emulateProgress = async (clientToken, promoId) => {
-        const response = await fetch('https://api.gamepromo.io/promo/register-event', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${clientToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                promoId,
-                eventId: generateUUID(),
-                eventOrigin: 'undefined'
-            })
-        });
-
-        if (!response.ok) {
-            return false;
-        }
-
-        const data = await response.json();
-        return data.hasCode;
-    };
+    document.getElementById('generate    };
